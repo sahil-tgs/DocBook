@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -8,22 +8,11 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import CustomDrawer from '../../components/CustomDrawer';
 
 export default function MoreScreen() {
-  const [drawerVisible, setDrawerVisible] = useState(false);
-
   const quickActions = [
     {
       id: '1',
-      title: 'Open Menu',
-      subtitle: 'Access all app features',
-      icon: 'menu-outline',
-      color: '#2563eb',
-      action: () => setDrawerVisible(true),
-    },
-    {
-      id: '2',
       title: 'Book Appointment',
       subtitle: 'Find and book with doctors',
       icon: 'calendar-outline',
@@ -31,13 +20,23 @@ export default function MoreScreen() {
       action: () => router.push('/(tabs)'),
     },
     {
-      id: '3',
+      id: '2',
       title: 'Emergency Contact',
       subtitle: 'Call emergency services',
       icon: 'call-outline',
       color: '#dc2626',
       action: () => {
         console.log('Emergency contact');
+      },
+    },
+    {
+      id: '3',
+      title: 'Settings',
+      subtitle: 'App preferences',
+      icon: 'settings-outline',
+      color: '#6b7280',
+      action: () => {
+        console.log('Settings - Coming soon');
       },
     },
   ];
@@ -96,20 +95,10 @@ export default function MoreScreen() {
       >
         {/* Header Section */}
         <View style={styles.headerSection}>
-          <View style={styles.headerContent}>
-            <View>
-              <Text style={styles.headerTitle}>More Options</Text>
-              <Text style={styles.headerSubtitle}>
-                Quick access to all features
-              </Text>
-            </View>
-            <TouchableOpacity 
-              style={styles.menuButton}
-              onPress={() => setDrawerVisible(true)}
-            >
-              <Ionicons name="menu" size={24} color="#ffffff" />
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.headerTitle}>More Options</Text>
+          <Text style={styles.headerSubtitle}>
+            Quick access to all features
+          </Text>
         </View>
 
         {/* Quick Actions */}
@@ -182,23 +171,9 @@ export default function MoreScreen() {
             <Text style={styles.appInfoName}>DocBook</Text>
             <Text style={styles.appInfoTagline}>Your Health, Our Priority</Text>
             <Text style={styles.appInfoVersion}>Version 1.0.0</Text>
-            
-            <TouchableOpacity 
-              style={styles.menuAccessButton}
-              onPress={() => setDrawerVisible(true)}
-            >
-              <Ionicons name="menu-outline" size={20} color="#2563eb" />
-              <Text style={styles.menuAccessText}>Access Full Menu</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
-
-      {/* Custom Drawer */}
-      <CustomDrawer 
-        visible={drawerVisible}
-        onClose={() => setDrawerVisible(false)}
-      />
     </View>
   );
 }
@@ -220,11 +195,6 @@ const styles = StyleSheet.create({
     paddingBottom: 25,
     paddingTop: 15,
   },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -234,14 +204,6 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 16,
     color: '#bfdbfe',
-  },
-  menuButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   section: {
     backgroundColor: '#ffffff',
@@ -355,21 +317,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9ca3af',
     marginBottom: 20,
-  },
-  menuAccessButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#dbeafe',
-  },
-  menuAccessText: {
-    fontSize: 14,
-    color: '#2563eb',
-    fontWeight: '600',
-    marginLeft: 8,
   },
 });

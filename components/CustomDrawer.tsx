@@ -7,6 +7,7 @@ import {
   ScrollView,
   Modal,
   SafeAreaView,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -30,9 +31,26 @@ interface DrawerItem {
 export default function CustomDrawer({ visible, onClose }: DrawerProps) {
   const insets = useSafeAreaInsets();
   const [userName, setUserName] = React.useState('User');
+  const slideAnim = React.useRef(new Animated.Value(300)).current; // Start from right (positive value)
 
   React.useEffect(() => {
     loadUserName();
+  }, [visible]);
+
+  React.useEffect(() => {
+    if (visible) {
+      Animated.timing(slideAnim, {
+        toValue: 0, // Slide to center
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: 300, // Slide back to right
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    }
   }, [visible]);
 
   const loadUserName = async () => {
@@ -47,24 +65,10 @@ export default function CustomDrawer({ visible, onClose }: DrawerProps) {
     }
   };
 
-const handleLogout = async () => {
-  try {
-    // Close drawer immediately
+  const handleLogout = () => {
     onClose();
-    
-    // Clear storage
-    await AsyncStorage.clear();
-    console.log('Storage cleared from drawer, navigating...');
-    
-    // Hard navigation to auth
-    router.push('/');
-    
-  } catch (error) {
-    console.log('Error during drawer logout:', error);
-    onClose();
-    router.push('/');
-  }
-};
+    router.push('/logout');
+  };
 
   const drawerItems: DrawerItem[] = [
     {
@@ -113,7 +117,6 @@ const handleLogout = async () => {
 
   const handleItemPress = (item: DrawerItem) => {
     if (item.isPlaceholder) {
-      // Handle placeholder items
       console.log(`${item.title} - Coming soon!`);
       return;
     }
@@ -126,10 +129,12 @@ const handleLogout = async () => {
     }
   };
 
+  if (!visible) return null;
+
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType="none"
       presentationStyle="overFullScreen"
       transparent={true}
       onRequestClose={onClose}
@@ -141,7 +146,15 @@ const handleLogout = async () => {
           onPress={onClose}
         />
         
-        <View style={[styles.drawerContainer, { paddingTop: insets.top }]}>
+        <Animated.View 
+          style={[
+            styles.drawerContainer, 
+            { 
+              paddingTop: insets.top,
+              transform: [{ translateX: slideAnim }]
+            }
+          ]}
+        >
           <SafeAreaView style={styles.drawerContent}>
             {/* Header */}
             <View style={styles.drawerHeader}>
@@ -275,7 +288,7 @@ const handleLogout = async () => {
               </View>
             </View>
           </SafeAreaView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -288,16 +301,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   overlayTouchable: {
-    flex: 0.3,
+    flex: 1,
   },
   drawerContainer: {
-    flex: 0.7,
+    width: 280,
     backgroundColor: '#ffffff',
     elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: -2, height: 0 },
+    shadowOffset: { width: -2, height: 0 }, // Shadow to the left
     shadowOpacity: 0.25,
     shadowRadius: 10,
+    position: 'absolute',
+    right: 0, // Position on the right side
+    top: 0,
+    bottom: 0,
   },
   drawerContent: {
     flex: 1,

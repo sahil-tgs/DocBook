@@ -98,20 +98,8 @@ const handleLogout = () => {
       {
         text: 'Logout',
         style: 'destructive',
-        onPress: async () => {
-          try {
-            // Clear storage
-            await AsyncStorage.clear();
-            console.log('Storage cleared, navigating to auth...');
-            
-            // Hard navigation to auth
-            router.push('/index');
-            
-          } catch (error) {
-            console.log('Error during logout:', error);
-            // Force navigation regardless
-            router.push('/index');
-          }
+        onPress: () => {
+          router.push('/logout');
         },
       },
     ]
