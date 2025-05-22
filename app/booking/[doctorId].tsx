@@ -244,14 +244,26 @@ export default function BookingScreen() {
         }}
       />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      {/* Scroll Indicator */}
+      <View style={styles.scrollIndicator}>
+        <Ionicons name="chevron-down" size={16} color="#6b7280" />
+        <Text style={styles.scrollText}>Scroll down for more options</Text>
+        <Ionicons name="chevron-down" size={16} color="#6b7280" />
+      </View>
+
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
+        showsVerticalScrollIndicator={true}
+        indicatorStyle="default"
+      >
         {/* Doctor Info Header */}
         <View style={styles.doctorHeader}>
           <View style={styles.doctorImageContainer}>
             <Image
               source={{ uri: doctor.photo }}
               style={styles.doctorImage}
-              defaultSource={require('../../assets/adaptive-icon.png')}
+              defaultSource={require('../../assets/images/icon.png')}
             />
           </View>
           
@@ -286,7 +298,14 @@ export default function BookingScreen() {
 
         {/* Date Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Date</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Select Date</Text>
+            <View style={styles.swipeIndicator}>
+              <Ionicons name="chevron-back" size={16} color="#9ca3af" />
+              <Text style={styles.swipeText}>Swipe</Text>
+              <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
+            </View>
+          </View>
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
@@ -320,8 +339,19 @@ export default function BookingScreen() {
 
         {/* Time Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Time</Text>
-          <View style={styles.timeGrid}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Select Time</Text>
+            <View style={styles.swipeIndicator}>
+              <Ionicons name="chevron-back" size={16} color="#9ca3af" />
+              <Text style={styles.swipeText}>Swipe</Text>
+              <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
+            </View>
+          </View>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.timeScrollContainer}
+          >
             {timeSlots.map((time) => (
               <TouchableOpacity
                 key={time}
@@ -339,7 +369,7 @@ export default function BookingScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
         </View>
 
         {/* Reason Input */}
@@ -356,19 +386,25 @@ export default function BookingScreen() {
           />
         </View>
 
-        {/* Book Button */}
-        <View style={styles.section}>
-          <TouchableOpacity
-            style={[styles.bookButton, loading && styles.bookButtonDisabled]}
-            onPress={handleBookAppointment}
-            disabled={loading}
-          >
-            <Text style={styles.bookButtonText}>
-              {loading ? 'Booking...' : 'Book Appointment'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* Bottom spacing for sticky button */}
+        <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Sticky Book Button */}
+      <View style={[styles.stickyButtonContainer, { paddingBottom: insets.bottom }]}>
+        <TouchableOpacity
+          style={[styles.bookButton, loading && styles.bookButtonDisabled]}
+          onPress={handleBookAppointment}
+          disabled={loading}
+        >
+          <Text style={styles.bookButtonText}>
+            {loading ? 'Booking...' : 'Book Appointment'}
+          </Text>
+          {!loading && (
+            <Ionicons name="calendar" size={20} color="#ffffff" style={styles.buttonIcon} />
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -382,11 +418,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  scrollIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  scrollText: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginHorizontal: 8,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 120, // Space for sticky button
   },
   doctorHeader: {
     backgroundColor: '#ffffff',
@@ -458,11 +508,25 @@ const styles = StyleSheet.create({
     marginTop: 15,
     padding: 20,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 15,
+  },
+  swipeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  swipeText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    marginHorizontal: 4,
   },
   dateScrollContainer: {
     paddingRight: 20,
@@ -495,10 +559,8 @@ const styles = StyleSheet.create({
   selectedDateText: {
     color: '#ffffff',
   },
-  timeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+  timeScrollContainer: {
+    paddingRight: 20,
   },
   timeSlot: {
     backgroundColor: '#f9fafb',
@@ -507,8 +569,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    minWidth: '22%',
+    marginRight: 10,
     alignItems: 'center',
+    minWidth: 90,
   },
   selectedTimeSlot: {
     backgroundColor: '#2563eb',
@@ -531,11 +594,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
     height: 100,
   },
+  bottomSpacing: {
+    height: 20,
+  },
+  stickyButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
   bookButton: {
     backgroundColor: '#2563eb',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 18,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   bookButtonDisabled: {
     backgroundColor: '#9ca3af',
@@ -544,5 +633,8 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  buttonIcon: {
+    marginLeft: 8,
   },
 });
