@@ -21,36 +21,36 @@ export default function ContactScreen() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const contactMethods = [
-    {
-      icon: 'call',
-      title: 'Phone Support',
-      subtitle: '24/7 Customer Service',
-      value: '+1 (555) 123-4567',
-      action: () => Linking.openURL('tel:+15551234567'),
-    },
-    {
-      icon: 'mail',
-      title: 'Email Support',
-      subtitle: 'Response within 24 hours',
-      value: 'support@docbook.com',
-      action: () => Linking.openURL('mailto:support@docbook.com'),
-    },
-    {
-      icon: 'chatbubbles',
-      title: 'Live Chat',
-      subtitle: 'Available 9 AM - 6 PM',
-      value: 'Start Chat',
-      action: () => Alert.alert('Coming Soon', 'Live chat feature will be available soon!'),
-    },
-    {
-      icon: 'location',
-      title: 'Visit Us',
-      subtitle: 'Main Office',
-      value: '123 Health St, Medical City',
-      action: () => Linking.openURL('https://maps.google.com/?q=123+Health+St+Medical+City'),
-    },
-  ];
+const contactMethods = [
+  {
+    icon: 'call',
+    title: 'Phone Support',
+    subtitle: '24/7 Customer Service',
+    value: '+91 98765-43210',
+    action: () => Linking.openURL('tel:+919876543210'),
+  },
+  {
+    icon: 'mail',
+    title: 'Email Support',
+    subtitle: 'Response within 24 hours',
+    value: 'support@docbook.in',
+    action: () => Linking.openURL('mailto:support@docbook.in'),
+  },
+  {
+    icon: 'chatbubbles',
+    title: 'Live Chat',
+    subtitle: 'Available 9 AM - 6 PM',
+    value: 'Start Chat',
+    action: () => Alert.alert('Coming Soon', 'Live chat feature will be available soon!'),
+  },
+  {
+    icon: 'location',
+    title: 'Visit Us',
+    subtitle: 'Main Office',
+    value: '123 MG Road, Connaught Place, New Delhi - 110001',
+    action: () => Linking.openURL('https://maps.google.com/?q=123+MG+Road+Connaught+Place+New+Delhi'),
+  },
+];
 
   const faqItems = [
     {
@@ -245,9 +245,9 @@ export default function ContactScreen() {
             </Text>
             <TouchableOpacity
               style={styles.emergencyButton}
-              onPress={() => Linking.openURL('tel:911')}
+              onPress={() => Linking.openURL('tel:108')}
             >
-              <Text style={styles.emergencyButtonText}>Call Emergency: 911</Text>
+              <Text style={styles.emergencyButtonText}>Call Emergency: 108</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -40,19 +40,19 @@ export default function AboutScreen() {
 
   const teamMembers = [
     {
-      name: 'Dr. James Wilson',
+      name: 'Dr. Amit Gupta',
       role: 'Chief Medical Officer',
       image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&h=150&fit=crop&crop=face'
     },
     {
-      name: 'Sarah Martinez',
+      name: 'Priyanka Sharma',
       role: 'Head of Operations',
       image: 'https://images.unsplash.com/photo-1494790108755-2616b9507cee?w=150&h=150&fit=crop&crop=face'
     },
     {
-      name: 'Michael Chang',
-      role: 'Lead Developer',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
+      name: 'Sahil Mandi',
+      role: 'Tech Lead',
+      image: require('../assets/images/1687444501219.jpeg')
     },
   ];
 
@@ -99,10 +99,10 @@ export default function AboutScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Our Mission</Text>
           <Text style={styles.missionText}>
-            At DocBook, we believe that quality healthcare should be accessible to everyone. 
-            Our mission is to bridge the gap between patients and healthcare providers by 
+            At DocBook, we believe that quality healthcare should be accessible to every Indian. 
+            Our mission is to bridge the gap between patients and healthcare providers across India by 
             providing a seamless, user-friendly platform that makes booking medical appointments 
-            as easy as ordering your favorite meal.
+            as easy as ordering your favorite meal. From metros to tier-2 cities, we're democratizing healthcare access.
           </Text>
         </View>
 
@@ -127,14 +127,15 @@ export default function AboutScreen() {
           <Text style={styles.sectionTitle}>Our Story</Text>
           <Text style={styles.storyText}>
             Founded in 2024, DocBook was born from the simple observation that booking 
-            a doctor's appointment shouldn't be complicated. Our team of healthcare 
+            a doctor's appointment shouldn't be complicated in modern India. Our team of healthcare 
             professionals and technology experts came together to create a solution 
             that puts patients first.
           </Text>
           <Text style={styles.storyText}>
-            Today, we're proud to serve thousands of patients across the country, 
+            Today, we're proud to serve thousands of patients across major Indian cities, 
             connecting them with the best healthcare providers in their area. We're 
-            not just a booking platform – we're your partner in health.
+            not just a booking platform – we're your partner in health, understanding 
+            the unique healthcare needs of Indian families.
           </Text>
         </View>
 
@@ -145,9 +146,9 @@ export default function AboutScreen() {
             {teamMembers.map((member, index) => (
               <View key={index} style={styles.teamMember}>
                 <Image
-                  source={{ uri: member.image }}
+                  source={typeof member.image === 'string' ? { uri: member.image } : member.image}
                   style={styles.teamImage}
-                  defaultSource={require('../assets/adaptive-icon.png')}
+                  defaultSource={require('../assets/icon.png')}
                 />
                 <Text style={styles.teamName}>{member.name}</Text>
                 <Text style={styles.teamRole}>{member.role}</Text>
@@ -199,7 +200,7 @@ export default function AboutScreen() {
             </Text>
             <TouchableOpacity 
               style={styles.ctaButton}
-              onPress={() => openLink('mailto:support@docbook.com')}
+              onPress={() => openLink('mailto:support@docbook.in')}
             >
               <Text style={styles.ctaButtonText}>Contact Support</Text>
             </TouchableOpacity>

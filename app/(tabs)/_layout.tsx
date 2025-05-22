@@ -31,6 +31,7 @@ export default function TabLayout() {
             backgroundColor: '#2563eb',
             elevation: 0,
             shadowOpacity: 0,
+            paddingTop: 10, // Add padding from status bar
           },
           headerTitleStyle: {
             color: '#ffffff',
