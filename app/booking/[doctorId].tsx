@@ -8,6 +8,7 @@ import {
   TextInput,
   Alert,
   Image,
+  Modal,
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -96,6 +97,9 @@ export default function BookingScreen() {
   const [reason, setReason] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<Array<{date: string, formatted: string, day: string}>>([]);
+  const [bookedSlots, setBookedSlots] = useState<Set<string>>(new Set());
+  const [existingAppointments, setExistingAppointments] = useState<any[]>([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     // Find doctor by ID
@@ -104,7 +108,41 @@ export default function BookingScreen() {
 
     // Generate next 7 days
     generateAvailableDates();
+    
+    // Load existing appointments
+    loadExistingAppointments();
   }, [doctorId]);
+
+  useEffect(() => {
+    // Update booked slots when date changes
+    updateBookedSlots();
+  }, [selectedDate, existingAppointments]);
+
+  const loadExistingAppointments = async () => {
+    try {
+      const storedAppointments = await AsyncStorage.getItem('appointments');
+      if (storedAppointments) {
+        const appointments = JSON.parse(storedAppointments);
+        setExistingAppointments(appointments);
+      }
+    } catch (error) {
+      console.log('Error loading appointments:', error);
+    }
+  };
+
+  const updateBookedSlots = () => {
+    if (!selectedDate || !doctor) return;
+
+    const bookedTimes = existingAppointments
+      .filter(apt => 
+        apt.doctorName === doctor.name && 
+        apt.date === selectedDate && 
+        apt.status === 'scheduled'
+      )
+      .map(apt => apt.time);
+
+    setBookedSlots(new Set(bookedTimes));
+  };
 
   const generateAvailableDates = () => {
     const dates = [];
@@ -157,9 +195,30 @@ export default function BookingScreen() {
     return stars;
   };
 
+  const isTimeSlotBooked = (time: string) => {
+    return bookedSlots.has(time);
+  };
+
+  const handleTimeSelection = (time: string) => {
+    if (isTimeSlotBooked(time)) {
+      Alert.alert(
+        'Slot Unavailable',
+        'This time slot is already booked. Please select a different time.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    setSelectedTime(time);
+  };
+
   const handleBookAppointment = async () => {
     if (!selectedDate || !selectedTime) {
       Alert.alert('Error', 'Please select both date and time for your appointment');
+      return;
+    }
+
+    if (isTimeSlotBooked(selectedTime)) {
+      Alert.alert('Error', 'This time slot is no longer available. Please select a different time.');
       return;
     }
 
@@ -181,40 +240,29 @@ export default function BookingScreen() {
         createdAt: new Date().toISOString(),
       };
 
-      // Get existing appointments
-      const existingAppointments = await AsyncStorage.getItem('appointments');
-      const appointments = existingAppointments ? JSON.parse(existingAppointments) : [];
-      
       // Add new appointment
-      appointments.push(newAppointment);
+      const updatedAppointments = [...existingAppointments, newAppointment];
       
       // Save back to storage
-      await AsyncStorage.setItem('appointments', JSON.stringify(appointments));
-
-      // Show success message
-      Alert.alert(
-        'Success!',
-        `Your appointment with ${doctor.name} has been booked for ${new Date(selectedDate).toLocaleDateString()} at ${selectedTime}`,
-        [
-          {
-            text: 'View Appointments',
-            onPress: () => router.push('/(tabs)/appointments'),
-          },
-          {
-            text: 'Book Another',
-            onPress: () => {
-              setSelectedTime('');
-              setReason('');
-            },
-          },
-        ]
-      );
+      await AsyncStorage.setItem('appointments', JSON.stringify(updatedAppointments));
+      
+      // Update local state
+      setExistingAppointments(updatedAppointments);
+      
+      // Show success modal
+      setShowSuccessModal(true);
 
     } catch (error) {
       Alert.alert('Error', 'Failed to book appointment. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    setSelectedTime('');
+    setReason('');
   };
 
   if (!doctor) {
@@ -352,23 +400,34 @@ export default function BookingScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.timeScrollContainer}
           >
-            {timeSlots.map((time) => (
-              <TouchableOpacity
-                key={time}
-                style={[
-                  styles.timeSlot,
-                  selectedTime === time && styles.selectedTimeSlot
-                ]}
-                onPress={() => setSelectedTime(time)}
-              >
-                <Text style={[
-                  styles.timeText,
-                  selectedTime === time && styles.selectedTimeText
-                ]}>
-                  {time}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {timeSlots.map((time) => {
+              const isBooked = isTimeSlotBooked(time);
+              const isSelected = selectedTime === time;
+              
+              return (
+                <TouchableOpacity
+                  key={time}
+                  style={[
+                    styles.timeSlot,
+                    isSelected && styles.selectedTimeSlot,
+                    isBooked && styles.bookedTimeSlot
+                  ]}
+                  onPress={() => handleTimeSelection(time)}
+                  disabled={isBooked}
+                >
+                  <Text style={[
+                    styles.timeText,
+                    isSelected && styles.selectedTimeText,
+                    isBooked && styles.bookedTimeText
+                  ]}>
+                    {time}
+                  </Text>
+                  {isBooked && (
+                    <Text style={styles.bookedLabel}>Booked</Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </View>
 
@@ -405,6 +464,55 @@ export default function BookingScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={handleSuccessModalClose}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <View style={styles.successIcon}>
+                <Ionicons name="checkmark-circle" size={50} color="#059669" />
+              </View>
+              <Text style={styles.modalTitle}>Booking Confirmed!</Text>
+              <Text style={styles.modalMessage}>
+                Your appointment with {doctor.name} has been successfully booked for{' '}
+                {new Date(selectedDate).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })} at {selectedTime}.
+              </Text>
+            </View>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => {
+                  handleSuccessModalClose();
+                  router.push('/(tabs)/appointments');
+                }}
+              >
+                <Ionicons name="calendar-outline" size={20} color="#2563eb" />
+                <Text style={styles.modalButtonText}>View My Appointments</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalButton, styles.secondaryButton]}
+                onPress={handleSuccessModalClose}
+              >
+                <Ionicons name="add-circle-outline" size={20} color="#6b7280" />
+                <Text style={[styles.modalButtonText, styles.secondaryButtonText]}>Book Another Appointment</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -436,7 +544,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 120, // Space for sticky button
+    paddingBottom: 120,
   },
   doctorHeader: {
     backgroundColor: '#ffffff',
@@ -577,6 +685,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563eb',
     borderColor: '#2563eb',
   },
+  bookedTimeSlot: {
+    backgroundColor: '#f3f4f6',
+    borderColor: '#d1d5db',
+    opacity: 0.6,
+  },
   timeText: {
     fontSize: 14,
     color: '#1f2937',
@@ -584,6 +697,15 @@ const styles = StyleSheet.create({
   },
   selectedTimeText: {
     color: '#ffffff',
+  },
+  bookedTimeText: {
+    color: '#9ca3af',
+  },
+  bookedLabel: {
+    fontSize: 10,
+    color: '#dc2626',
+    marginTop: 2,
+    fontWeight: '500',
   },
   reasonInput: {
     borderWidth: 1,
@@ -636,5 +758,72 @@ const styles = StyleSheet.create({
   },
   buttonIcon: {
     marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    paddingVertical: 30,
+    paddingHorizontal: 25,
+    maxWidth: 400,
+    width: '100%',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  successIcon: {
+    marginBottom: 15,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  modalButtons: {
+    gap: 12,
+  },
+  modalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#2563eb',
+    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+  },
+  secondaryButton: {
+    backgroundColor: '#f9fafb',
+    borderColor: '#d1d5db',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2563eb',
+    marginLeft: 8,
+  },
+  secondaryButtonText: {
+    color: '#6b7280',
   },
 });
