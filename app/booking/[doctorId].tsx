@@ -1,0 +1,548 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  Image,
+} from 'react-native';
+import { useLocalSearchParams, router, Stack } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// Mock doctor data (same as home screen)
+const doctors = [
+  {
+    id: '1',
+    name: 'Dr. Sarah Johnson',
+    specialty: 'Cardiologist',
+    rating: 4.8,
+    experience: '12 years',
+    availability: 'Available',
+    photo: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&h=150&fit=crop&crop=face',
+    education: 'MD, Harvard Medical School',
+    location: 'City General Hospital',
+    fee: '$120',
+  },
+  {
+    id: '2',
+    name: 'Dr. Michael Chen',
+    specialty: 'Dermatologist',
+    rating: 4.9,
+    experience: '8 years',
+    availability: 'Available',
+    photo: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&h=150&fit=crop&crop=face',
+    education: 'MD, Johns Hopkins University',
+    location: 'Skin Care Clinic',
+    fee: '$90',
+  },
+  {
+    id: '3',
+    name: 'Dr. Emily Rodriguez',
+    specialty: 'Pediatrician',
+    rating: 4.7,
+    experience: '15 years',
+    availability: 'Busy',
+    photo: 'https://images.unsplash.com/photo-1594824388853-2c5bb9c71e06?w=150&h=150&fit=crop&crop=face',
+    education: 'MD, Stanford University',
+    location: 'Children\'s Medical Center',
+    fee: '$100',
+  },
+  {
+    id: '4',
+    name: 'Dr. David Kim',
+    specialty: 'Orthopedic',
+    rating: 4.6,
+    experience: '10 years',
+    availability: 'Available',
+    photo: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=150&h=150&fit=crop&crop=face',
+    education: 'MD, UCLA Medical School',
+    location: 'Orthopedic Surgery Center',
+    fee: '$150',
+  },
+  {
+    id: '5',
+    name: 'Dr. Lisa Thompson',
+    specialty: 'Neurologist',
+    rating: 4.9,
+    experience: '18 years',
+    availability: 'Available',
+    photo: 'https://images.unsplash.com/photo-1527613426441-4da17471b66d?w=150&h=150&fit=crop&crop=face',
+    education: 'MD, Mayo Medical School',
+    location: 'Neurology Institute',
+    fee: '$180',
+  },
+];
+
+// Time slots for appointments
+const timeSlots = [
+  '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
+  '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM',
+  '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM',
+  '04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM',
+];
+
+export default function BookingScreen() {
+  const { doctorId } = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
+  
+  const [doctor, setDoctor] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [reason, setReason] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [availableDates, setAvailableDates] = useState<Array<{date: string, formatted: string, day: string}>>([]);
+
+  useEffect(() => {
+    // Find doctor by ID
+    const foundDoctor = doctors.find(d => d.id === doctorId);
+    setDoctor(foundDoctor);
+
+    // Generate next 7 days
+    generateAvailableDates();
+  }, [doctorId]);
+
+  const generateAvailableDates = () => {
+    const dates = [];
+    const today = new Date();
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      
+      const dateString = date.toISOString().split('T')[0];
+      const formatted = date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      });
+      const day = date.toLocaleDateString('en-US', {
+        weekday: 'short',
+      });
+
+      dates.push({
+        date: dateString,
+        formatted,
+        day,
+      });
+    }
+    
+    setAvailableDates(dates);
+    // Auto-select first date
+    if (dates.length > 0) {
+      setSelectedDate(dates[0].date);
+    }
+  };
+
+  const renderStars = (rating: number) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
+
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(
+        <Ionicons key={i} name="star" size={14} color="#fbbf24" />
+      );
+    }
+
+    if (hasHalfStar) {
+      stars.push(
+        <Ionicons key="half" name="star-half" size={14} color="#fbbf24" />
+      );
+    }
+
+    return stars;
+  };
+
+  const handleBookAppointment = async () => {
+    if (!selectedDate || !selectedTime) {
+      Alert.alert('Error', 'Please select both date and time for your appointment');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Generate appointment ID
+      const appointmentId = Date.now().toString();
+      
+      // Create appointment object
+      const newAppointment = {
+        id: appointmentId,
+        doctorName: doctor.name,
+        specialty: doctor.specialty,
+        date: selectedDate,
+        time: selectedTime,
+        reason: reason.trim() || 'General consultation',
+        status: 'scheduled',
+        createdAt: new Date().toISOString(),
+      };
+
+      // Get existing appointments
+      const existingAppointments = await AsyncStorage.getItem('appointments');
+      const appointments = existingAppointments ? JSON.parse(existingAppointments) : [];
+      
+      // Add new appointment
+      appointments.push(newAppointment);
+      
+      // Save back to storage
+      await AsyncStorage.setItem('appointments', JSON.stringify(appointments));
+
+      // Show success message
+      Alert.alert(
+        'Success!',
+        `Your appointment with ${doctor.name} has been booked for ${new Date(selectedDate).toLocaleDateString()} at ${selectedTime}`,
+        [
+          {
+            text: 'View Appointments',
+            onPress: () => router.push('/(tabs)/appointments'),
+          },
+          {
+            text: 'Book Another',
+            onPress: () => {
+              setSelectedTime('');
+              setReason('');
+            },
+          },
+        ]
+      );
+
+    } catch (error) {
+      Alert.alert('Error', 'Failed to book appointment. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!doctor) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text>Loading doctor information...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTitle: 'Book Appointment',
+          headerStyle: {
+            backgroundColor: '#2563eb',
+          },
+          headerTitleStyle: {
+            color: '#ffffff',
+            fontSize: 18,
+            fontWeight: 'bold',
+          },
+          headerTintColor: '#ffffff',
+          headerSafeAreaInsets: { top: insets.top },
+        }}
+      />
+
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Doctor Info Header */}
+        <View style={styles.doctorHeader}>
+          <View style={styles.doctorImageContainer}>
+            <Image
+              source={{ uri: doctor.photo }}
+              style={styles.doctorImage}
+              defaultSource={require('../../assets/adaptive-icon.png')}
+            />
+          </View>
+          
+          <View style={styles.doctorInfo}>
+            <Text style={styles.doctorName}>{doctor.name}</Text>
+            <Text style={styles.doctorSpecialty}>{doctor.specialty}</Text>
+            
+            <View style={styles.ratingContainer}>
+              <View style={styles.starsContainer}>
+                {renderStars(doctor.rating)}
+              </View>
+              <Text style={styles.ratingText}>{doctor.rating}</Text>
+              <Text style={styles.experienceText}>• {doctor.experience}</Text>
+            </View>
+
+            <View style={styles.doctorDetails}>
+              <View style={styles.detailRow}>
+                <Ionicons name="school-outline" size={16} color="#6b7280" />
+                <Text style={styles.detailText}>{doctor.education}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Ionicons name="location-outline" size={16} color="#6b7280" />
+                <Text style={styles.detailText}>{doctor.location}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Ionicons name="card-outline" size={16} color="#6b7280" />
+                <Text style={styles.detailText}>Consultation Fee: {doctor.fee}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Date Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Select Date</Text>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.dateScrollContainer}
+          >
+            {availableDates.map((dateObj) => (
+              <TouchableOpacity
+                key={dateObj.date}
+                style={[
+                  styles.dateCard,
+                  selectedDate === dateObj.date && styles.selectedDateCard
+                ]}
+                onPress={() => setSelectedDate(dateObj.date)}
+              >
+                <Text style={[
+                  styles.dayText,
+                  selectedDate === dateObj.date && styles.selectedDateText
+                ]}>
+                  {dateObj.day}
+                </Text>
+                <Text style={[
+                  styles.dateText,
+                  selectedDate === dateObj.date && styles.selectedDateText
+                ]}>
+                  {dateObj.formatted}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Time Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Select Time</Text>
+          <View style={styles.timeGrid}>
+            {timeSlots.map((time) => (
+              <TouchableOpacity
+                key={time}
+                style={[
+                  styles.timeSlot,
+                  selectedTime === time && styles.selectedTimeSlot
+                ]}
+                onPress={() => setSelectedTime(time)}
+              >
+                <Text style={[
+                  styles.timeText,
+                  selectedTime === time && styles.selectedTimeText
+                ]}>
+                  {time}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Reason Input */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Reason for Visit (Optional)</Text>
+          <TextInput
+            style={styles.reasonInput}
+            placeholder="Describe your symptoms or reason for consultation..."
+            value={reason}
+            onChangeText={setReason}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
+        </View>
+
+        {/* Book Button */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={[styles.bookButton, loading && styles.bookButtonDisabled]}
+            onPress={handleBookAppointment}
+            disabled={loading}
+          >
+            <Text style={styles.bookButtonText}>
+              {loading ? 'Booking...' : 'Book Appointment'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  doctorHeader: {
+    backgroundColor: '#ffffff',
+    padding: 20,
+    flexDirection: 'row',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  doctorImageContainer: {
+    marginRight: 15,
+  },
+  doctorImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#e5e7eb',
+  },
+  doctorInfo: {
+    flex: 1,
+  },
+  doctorName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  doctorSpecialty: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginBottom: 8,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  starsContainer: {
+    flexDirection: 'row',
+    marginRight: 6,
+  },
+  ratingText: {
+    fontSize: 14,
+    color: '#1f2937',
+    fontWeight: '600',
+  },
+  experienceText: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginLeft: 4,
+  },
+  doctorDetails: {
+    gap: 6,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginLeft: 8,
+    flex: 1,
+  },
+  section: {
+    backgroundColor: '#ffffff',
+    marginTop: 15,
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 15,
+  },
+  dateScrollContainer: {
+    paddingRight: 20,
+  },
+  dateCard: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    padding: 15,
+    marginRight: 10,
+    alignItems: 'center',
+    minWidth: 70,
+  },
+  selectedDateCard: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  dayText: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+  dateText: {
+    fontSize: 16,
+    color: '#1f2937',
+    fontWeight: 'bold',
+  },
+  selectedDateText: {
+    color: '#ffffff',
+  },
+  timeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  timeSlot: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minWidth: '22%',
+    alignItems: 'center',
+  },
+  selectedTimeSlot: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  timeText: {
+    fontSize: 14,
+    color: '#1f2937',
+    fontWeight: '600',
+  },
+  selectedTimeText: {
+    color: '#ffffff',
+  },
+  reasonInput: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 10,
+    padding: 15,
+    fontSize: 16,
+    backgroundColor: '#f9fafb',
+    height: 100,
+  },
+  bookButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 10,
+    padding: 18,
+    alignItems: 'center',
+  },
+  bookButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  bookButtonText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+});
