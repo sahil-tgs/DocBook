@@ -43,7 +43,7 @@ DocBook is a comprehensive React Native mobile application that simplifies the p
 1. **Clone the repository**
    ```bash
    https://github.com/sahil-tgs/DocBook.git
-   cd docbook-app
+   cd DocBook
    ```
 
 2. **Install dependencies**
@@ -61,6 +61,8 @@ DocBook is a comprehensive React Native mobile application that simplifies the p
 4. **Start the development server**
    ```bash
    npx expo start
+   # or
+   npx expo start --tunnel
    ```
 
 5. **Run on device/emulator**
