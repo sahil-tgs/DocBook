@@ -42,7 +42,7 @@ DocBook is a comprehensive React Native mobile application that simplifies the p
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/docbook-app.git
+   https://github.com/sahil-tgs/DocBook.git
    cd docbook-app
    ```
 
